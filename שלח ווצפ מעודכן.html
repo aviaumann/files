@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>שליחת הודעה</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/kTcXnXn6M2bXbZtX09dJvvk5jEk+VZqQo0MxEX1PY6oBdR5F8YkOq8XD9v4iWZKdLqBqkz+2fWuwg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #e5ddd5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-top: 20px;
+    }
+    h2 {
+      text-align: center;
+      color: #075E54;
+    }
+    #contactInput {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    #phoneOutput {
+      margin-bottom: 15px;
+      font-weight: bold;
+      direction: ltr;
+    }
+    .button-send {
+      width: 300px;
+      display: block;
+      margin: 0 auto;
+      padding: 10px;
+      background-color: #25D366;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .button-send i {
+      margin-left: 8px;
+    }
+    .tools {
+      display: flex;
+      justify-content: space-between;
+      margin: 20px 0 10px;
+    }
+    .tools button {
+      flex: 1;
+      margin: 0 5px;
+      padding: 10px;
+      background-color: #075E54;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #contactList {
+      list-style: none;
+      padding: 0;
+    }
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+    .contact-item:hover {
+      background-color: #f0f0f0;
+    }
+    .contact-icon {
+      color: #25D366;
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>שליחת הודעה</h2>
+
+  <input type="text" id="contactInput" placeholder="הכנס שם או מספר טלפון...">
+  <div id="phoneOutput"></div>
+  <button class="button-send" onclick="sendMessage()">
+    <i class="fas fa-paper-plane"></i> שלח
+  </button>
+
+  <h3>ניהול אנשי קשר</h3>
+  <div class="tools">
+    <button onclick="downloadCSV()"><i class="fas fa-download"></i> הורדה</button>
+    <button onclick="document.getElementById('fileInput').click()"><i class="fas fa-upload"></i> טעינה</button>
+    <button onclick="showAddContactForm()"><i class="fas fa-user-plus"></i> הוסף</button>
+  </div>
+  <input type="file" id="fileInput" style="display:none" accept=".csv" onchange="loadCSV(event)">
+
+  <ul id="contactList"></ul>
+</div>
+
+<!-- הוספת איש קשר -->
+<div id="addContactModal" style="display:none; position:fixed; top:20%; left:50%; transform:translateX(-50%); background:white; padding:20px; border:1px solid #ccc; border-radius:10px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
+  <h3>הוסף איש קשר</h3>
+  <input type="text" id="newName" placeholder="שם" style="width:100%; padding:8px; margin-bottom:10px;">
+  <input type="text" id="newPhone" placeholder="מספר טלפון" style="width:100%; padding:8px; margin-bottom:10px;">
+  <button onclick="addContact()">שמור</button>
+  <button onclick="document.getElementById('addContactModal').style.display='none'">סגור</button>
+</div>
+
+<script>
+  let contacts = JSON.parse(localStorage.getItem('contacts') || '[]');
+
+  const contactInput = document.getElementById('contactInput');
+  const phoneOutput = document.getElementById('phoneOutput');
+
+  function normalizePhone(phone) {
+    let digits = phone.replace(/[^\d]/g, '');
+    if (digits.startsWith('972')) {
+      digits = '0' + digits.slice(3);
+    }
+    return digits;
+  }
+
+  function sendMessage() {
+    const value = contactInput.value.trim();
+    let phone = contacts.find(c => c.name === value)?.phone || value;
+    phone = normalizePhone(phone);
+    if (!phone.match(/^0\d{8,9}$/)) return alert('מספר לא תקין');
+
+    window.open(`https://mail.google.com/mail/u/0/?fs=1&tf=cm&source=mailto&su=${phone}&to=whatsapp@whatsappcall.ovh&body`, '_blank', 'width=500,height=500');
+  }
+
+  contactInput.addEventListener('input', () => {
+    const match = contacts.find(c => c.name === contactInput.value.trim());
+    phoneOutput.textContent = match ? normalizePhone(match.phone) : '';
+  });
+
+  contactInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendMessage();
+  });
+
+  function renderContactList() {
+    const list = document.getElementById('contactList');
+    list.innerHTML = '';
+    contacts.forEach(contact => {
+      const li = document.createElement('li');
+      li.className = 'contact-item';
+      li.innerHTML = `<i class="fas fa-user-circle contact-icon"></i> ${contact.name}`;
+      li.onclick = () => {
+        contactInput.value = contact.name;
+        phoneOutput.textContent = normalizePhone(contact.phone);
+      };
+      list.appendChild(li);
+    });
+  }
+
+  function downloadCSV() {
+    const csv = contacts.map(c => `${c.name},${normalizePhone(c.phone)}`).join('\n');
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'contacts.csv';
+    a.click();
+  }
+
+  function loadCSV(event) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    reader.onload = e => {
+      const lines = e.target.result.split(/\r?\n/);
+      lines.forEach(line => {
+        const [name, phone] = line.split(',');
+        if (name && phone) contacts.push({ name: name.trim(), phone: phone.trim() });
+      });
+      localStorage.setItem('contacts', JSON.stringify(contacts));
+      renderContactList();
+    };
+    reader.readAsText(file);
+  }
+
+  function showAddContactForm() {
+    document.getElementById('addContactModal').style.display = 'block';
+  }
+
+  function addContact() {
+    const name = document.getElementById('newName').value.trim();
+    const phone = document.getElementById('newPhone').value.trim();
+    if (!name || !phone) return alert('נא למלא שם ומספר');
+    contacts.push({ name, phone });
+    localStorage.setItem('contacts', JSON.stringify(contacts));
+    document.getElementById('addContactModal').style.display = 'none';
+    document.getElementById('newName').value = '';
+    document.getElementById('newPhone').value = '';
+    renderContactList();
+  }
+
+  renderContactList();
+</script>
+</body>
+</html>

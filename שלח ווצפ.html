@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>שליחת הודעה</title>
+</head>
+<body>
+  <h2>בחר איש קשר או הקלד מספר טלפון</h2>
+  <input list="contactsList" id="contactInput" placeholder="הקלד שם או מספר">
+  <datalist id="contactsList"></datalist>
+  <p>מספר טלפון מזוהה: <span id="phoneDisplay">---</span></p>
+  <button onclick="sendMessage()">שלח</button>
+
+  <hr>
+  <h3>📁 ייבוא וייצוא אנשי קשר</h3>
+  <button id="exportBtn">📥 הורד CSV</button>
+  <input type="file" id="importInput" accept=".csv" style="display:none">
+  <button id="importBtn">📤 טען CSV</button>
+
+  <script>
+    let contacts = [
+      { name: "משה שלזינגר", phone: "0526370400" },
+      { name: "תומר פרי", phone: "0547468633" },
+      { name: "מאיר כחלון", phone: "0508773258" },
+      { name: "קובי הובר", phone: "0508424304" },
+      { name: "אורלי", phone: "0545974004" },
+      { name: "נטע", phone: "0584272000" },
+      { name: "ניסן טובי", phone: "0526401155" },
+      { name: "הרב שרעבי", phone: "0522570102" },
+      { name: "בני אומן", phone: "0522944186" },
+      { name: "דוד אומן", phone: "0537292021" },
+      { name: "חוה הררי", phone: "0585824442" },
+      { name: "עדינה מייזל", phone: "0523505727" },
+      { name: "הניה ביגל", phone: "0524255894" },
+      { name: "חמי ביגל", phone: "0526677224" },
+      { name: "אבי מימרן", phone: "0543366933" },
+      { name: "רחל סולומון", phone: "0547286060" },
+      { name: "אבישג נוביק", phone: "0585005455" },
+      { name: "טלי נאומבורג", phone: "0523115153" },
+      { name: "מיכאל צ'צ'ל", phone: "0544514010" },
+      { name: "דוד גיגי", phone: "0532392265" },
+      { name: "אביאלה", phone: "0549169981" },
+      { name: "יצחק אומן", phone: "0583222736" },
+      { name: "אריה קליגמן", phone: "0585840229" },
+      { name: "יוסי כברה", phone: "0549199868" },
+      { name: "כהן שוכרים בלובביץ", phone: "0586770000" },
+      { name: "אריאל ביגל", phone: "0528085379" },
+      { name: "אבי דרור", phone: "0547980544" },
+      { name: "מוטי כהן", phone: "0547739831" }
+    ];
+
+    const input = document.getElementById("contactInput");
+    const phoneDisplay = document.getElementById("phoneDisplay");
+
+    function updateDatalist() {
+      const datalist = document.getElementById("contactsList");
+      datalist.innerHTML = "";
+      contacts.forEach(contact => {
+        const option = document.createElement("option");
+        option.value = contact.name;
+        datalist.appendChild(option);
+      });
+    }
+
+    function normalizePhone(phone) {
+      phone = phone.replace(/-/g, '').trim();
+      if (/^972\d{8,9}$/.test(phone)) {
+        return "0" + phone.slice(3);
+      }
+      return phone;
+    }
+
+    input.addEventListener("input", () => {
+      const value = input.value.trim();
+      const contact = contacts.find(c => c.name === value);
+      let phone = "";
+
+      if (contact) {
+        phone = contact.phone;
+      } else if (/^(0\d{8,9}|972\d{8,9})$/.test(value.replace(/-/g, ''))) {
+        phone = normalizePhone(value);
+      }
+
+      phoneDisplay.textContent = phone || "---";
+    });
+
+    function sendMessage() {
+      const phone = phoneDisplay.textContent;
+      if (!/^0\d{8,9}$/.test(phone)) {
+        alert("מספר טלפון לא תקני");
+        return;
+      }
+      const url = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&source=mailto&su=${phone}&to=whatsapp@whatsappcall.ovh&body=${phone}`;
+      window.open(url, '_blank', 'width=500,height=500');
+    }
+
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    function saveContacts() {
+      localStorage.setItem("myContacts", JSON.stringify(contacts));
+    }
+
+    function loadContacts() {
+      const saved = localStorage.getItem("myContacts");
+      if (saved) {
+        try {
+          contacts = JSON.parse(saved);
+        } catch {}
+      }
+    }
+
+    // ייבוא CSV
+    document.getElementById("importBtn").addEventListener("click", () => {
+      document.getElementById("importInput").click();
+    });
+
+    document.getElementById("importInput").addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const lines = event.target.result.split("\n");
+        let added = 0;
+        lines.forEach(line => {
+          const [nameRaw, phoneRaw] = line.split(",");
+          if (!nameRaw || !phoneRaw) return;
+          const name = nameRaw.replace(/"/g, "").trim();
+          const phone = phoneRaw.replace(/"/g, "").trim().replace(/-/g, "");
+          if (!contacts.some(c => c.name === name) && /^0\d{8,9}$/.test(phone)) {
+            contacts.push({ name, phone });
+            added++;
+          }
+        });
+        saveContacts();
+        updateDatalist();
+        alert(`נטענו ${added} אנשי קשר חדשים`);
+        e.target.value = "";
+      };
+      reader.readAsText(file, "UTF-8");
+    });
+
+    // ייצוא CSV
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      if (contacts.length === 0) return alert("אין אנשי קשר לייצא.");
+      const csvContent = "data:text/csv;charset=utf-8," +
+        contacts.map(c => `"${c.name}","${c.phone}"`).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "contacts.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    loadContacts();
+    updateDatalist();
+  </script>
+</body>
+</html>

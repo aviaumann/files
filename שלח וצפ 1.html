@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>ניהול אנשי קשר</title>
+  <style>
+    body {
+      direction: rtl;
+      font-family: sans-serif;
+      background: #e5ddd5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin-top: 0;
+      color: #075e54;
+    }
+    .contact {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #dcf8c6;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .contact img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      margin-left: 10px;
+    }
+    .contact-info {
+      flex-grow: 1;
+    }
+    .contact button {
+      background: none;
+      border: none;
+      color: red;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .actions button {
+      flex: 1;
+      padding: 10px;
+      background: #128c7e;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #sendBtn {
+      width: 300px;
+      background: #25d366;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ניהול אנשי קשר</h1>
+    <div class="actions">
+      <button id="addContactBtn">➕ הוסף איש קשר</button>
+      <button id="downloadBtn">⬇️ הורד CSV</button>
+      <button id="uploadBtn">⬆️ טען CSV</button>
+      <input type="file" id="csvFileInput" accept=".csv" style="display:none">
+    </div>
+
+    <input type="text" id="nameInput" placeholder="הכנס שם לחיפוש או שליחה" style="width: 100%; padding: 10px;">
+    <button id="sendBtn">שלח ✈️</button>
+
+    <div id="contacts"></div>
+  </div>
+
+  <script>
+    let contacts = JSON.parse(localStorage.getItem("contacts") || "[]");
+    const contactsDiv = document.getElementById("contacts");
+    const nameInput = document.getElementById("nameInput");
+
+    function saveContacts() {
+      localStorage.setItem("contacts", JSON.stringify(contacts));
+    }
+
+    function renderContacts() {
+      contactsDiv.innerHTML = "";
+      contacts.forEach((c, i) => {
+        const div = document.createElement("div");
+        div.className = "contact";
+        div.innerHTML = `
+          <img src="https://via.placeholder.com/32" alt="Profile">
+          <div class="contact-info">${c.name} - ${c.phone}</div>
+          <button onclick="confirmDelete(${i})">❌</button>
+        `;
+        contactsDiv.appendChild(div);
+      });
+    }
+
+    function confirmDelete(index) {
+      if (confirm(`האם למחוק את ${contacts[index].name}?`)) {
+        contacts.splice(index, 1);
+        saveContacts();
+        renderContacts();
+      }
+    }
+
+    document.getElementById("addContactBtn").onclick = () => {
+      if (document.getElementById("addForm")) return;
+      const formDiv = document.createElement("div");
+      formDiv.id = "addForm";
+      formDiv.style.marginTop = "10px";
+      formDiv.style.background = "#f0f0f0";
+      formDiv.style.padding = "10px";
+      formDiv.style.borderRadius = "10px";
+      formDiv.innerHTML = `
+        <label>שם: <input id="newName" type="text"></label><br>
+        <label>טלפון: <input id="newPhone" type="text"></label><br>
+        <button onclick="saveNewContact()">שמור</button>
+        <button onclick="document.getElementById('addForm').remove()">ביטול</button>
+      `;
+      document.querySelector(".container").appendChild(formDiv);
+    }
+
+    function saveNewContact() {
+      const name = document.getElementById("newName").value;
+      const phone = document.getElementById("newPhone").value;
+      if (!name || !phone) return alert("יש למלא שם וטלפון");
+      contacts.push({ name, phone });
+      saveContacts();
+      renderContacts();
+      document.getElementById("addForm").remove();
+    }
+
+    document.getElementById("downloadBtn").onclick = () => {
+      let csv = contacts.map(c => `${c.name},${c.phone}`).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "contacts.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById("uploadBtn").onclick = () => {
+      document.getElementById("csvFileInput").click();
+    }
+
+    document.getElementById("csvFileInput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const lines = e.target.result.split("\n");
+        lines.forEach(line => {
+          const [name, phone] = line.trim().split(",");
+          if (name && phone) contacts.push({ name, phone });
+        });
+        saveContacts();
+        renderContacts();
+      }
+      reader.readAsText(file);
+    });
+
+    document.getElementById("sendBtn").onclick = () => {
+      const name = nameInput.value;
+      const found = contacts.find(c => c.name === name);
+      if (!found) return alert("איש קשר לא נמצא");
+      const url = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&source=mailto&su=${found.phone}&to=whatsapp@whatsappcall.ovh&body=`;
+      window.open(url, "_blank", "width=500,height=500");
+    }
+
+    nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("sendBtn").click();
+    });
+
+    renderContacts();
+  </script>
+</body>
+</html>

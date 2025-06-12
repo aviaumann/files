@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ניהול אנשי קשר</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #e5ddd5;
+    margin: 0; padding: 20px;
+    direction: rtl;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #075e54;
+  }
+
+  /* כפתורים עליון */
+  .top-buttons {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+  .btn {
+    background-color: #25d366;
+    border: none;
+    color: white;
+    padding: 10px 18px;
+    margin: 5px;
+    border-radius: 25px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+  }
+  .btn.cancel {
+    background-color: #ccc;
+    color: #555;
+  }
+  .btn span.icon {
+    margin-left: 8px;
+    font-size: 18px;
+  }
+
+  /* חלון הוספה מוקפץ */
+  .popup {
+    position: fixed;
+    top: 0; left: 0; right:0; bottom:0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .popup.hidden {
+    display: none;
+  }
+  .popup-content {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    width: 320px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    text-align: center;
+  }
+  .popup-content input {
+    width: 90%;
+    font-size: 16px;
+    padding: 10px;
+    margin: 10px auto;
+    display: block;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+  .popup-buttons {
+    margin-top: 15px;
+  }
+  .popup-buttons .btn {
+    width: 120px;
+  }
+
+  /* רשימת אנשי קשר */
+  #contactsList {
+    max-width: 400px;
+    margin: 0 auto 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px #9993;
+    padding: 10px 0;
+  }
+  .contact-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 15px;
+    border-bottom: 1px solid #eee;
+    font-size: 16px;
+  }
+  .contact-item:last-child {
+    border-bottom: none;
+  }
+  .contact-left {
+    display: flex;
+    align-items: center;
+  }
+  .contact-avatar {
+    background: #25d366;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: 12px;
+    user-select: none;
+  }
+  .contact-info {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+  }
+  .contact-name {
+    font-weight: 700;
+    color: #075e54;
+  }
+  .contact-phone {
+    color: #555;
+    font-size: 14px;
+  }
+  .contact-actions button {
+    background: none;
+    border: none;
+    color: #e53935;
+    font-size: 20px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .contact-actions button:hover {
+    color: #b71c1c;
+  }
+
+  /* הודעה ושליחה */
+  #messageArea {
+    max-width: 400px;
+    margin: 0 auto;
+    display: flex;
+    gap: 8px;
+  }
+  #messageInput {
+    flex-grow: 1;
+    font-size: 16px;
+    padding: 12px 15px;
+    border-radius: 25px;
+    border: 1px solid #ccc;
+  }
+  #sendBtn {
+    background: #25d366;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    width: 300px;
+    font-weight: bold;
+    font-size: 18px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #sendBtn span.icon {
+    margin-right: 8px;
+    font-size: 20px;
+  }
+
+  /* ניהול אנשי קשר - כפתורים שורה תחתונה */
+  #manageContacts {
+    max-width: 400px;
+    margin: 10px auto 40px;
+    text-align: center;
+  }
+  #manageContacts .btn {
+    width: 100px;
+  }
+</style>
+</head>
+<body>
+
+<h1>ניהול אנשי קשר</h1>
+
+<div id="manageContacts">
+  <button onclick="openAddContact()" class="btn">➕ הוסף</button>
+  <button onclick="exportCSV()" class="btn">⬇ ייצוא</button>
+  <button onclick="document.getElementById('fileInput').click()" class="btn">⬆ יבוא</button>
+  <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importCSV(event)" />
+</div>
+
+<div id="contactsList">
+  <!-- כאן יופיעו אנשי הקשר -->
+</div>
+
+<div id="messageArea">
+  <input id="messageInput" type="text" placeholder="כתוב הודעה..." />
+  <button id="sendBtn" title="שלח">
+    <span class="icon">✈️</span> שלח
+  </button>
+</div>
+
+<!-- חלון הוספת איש קשר -->
+<div id="popup" class="popup hidden">
+  <div class="popup-content">
+    <h3>הוסף איש קשר</h3>
+    <input id="newName" type="text" placeholder="שם" autocomplete="off" />
+    <input id="newPhone" type="text" placeholder="טלפון" autocomplete="off" />
+    <div class="popup-buttons">
+      <button onclick="addContact()" class="btn">✔ אישור</button>
+      <button onclick="closeAddContact()" class="btn cancel">✖ ביטול</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let contacts = [];
+
+  // טעינת אנשי קשר מ-localStorage
+  function loadContacts() {
+    const saved = localStorage.getItem('contacts');
+    contacts = saved ? JSON.parse(saved) : [];
+  }
+
+  // שמירת אנשי קשר ל-localStorage
+  function saveContacts() {
+    localStorage.setItem('contacts', JSON.stringify(contacts));
+  }
+
+  // רינדור רשימת אנשי קשר
+  function renderContacts() {
+    const list = document.getElementById('contactsList');
+    list.innerHTML = '';
+    contacts.forEach((c, i) => {
+      const avatarLetter = c.name.charAt(0);
+      const div = document.createElement('div');
+      div.className = 'contact-item';
+
+      div.innerHTML = `
+        <div class="contact-left">
+          <div class="contact-avatar">${avatarLetter}</div>
+          <div class="contact-info">
+            <div class="contact-name">${c.name}</div>
+            <div class="contact-phone">${c.phone}</div>
+          </div>
+        </div>
+        <div class="contact-actions">
+          <button title="מחק" onclick="confirmDelete(${i})">✖</button>
+          <button title="שלח" onclick="sendMessage(${i})">📩</button>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  // פתיחת חלון הוספת איש קשר
+  function openAddContact() {
+    document.getElementById('popup').classList.remove('hidden');
+    document.getElementById('newName').value = '';
+    document.getElementById('newPhone').value = '';
+    document.getElementById('newName').focus();
+  }
+
+  // סגירת חלון הוספת איש קשר
+  function closeAddContact() {
+    document.getElementById('popup').classList.add('hidden');
+  }
+
+  // הוספת איש קשר חדש
+  function addContact() {
+    const name = document.getElementById('newName').value.trim();
+    const phone = document.getElementById('newPhone').value.trim();
+if (!name || !phone) {
+alert('אנא מלא שם וטלפון');
+return;
+}
+contacts.push({name, phone});
+saveContacts();
+renderContacts();
+closeAddContact();
+}
+
+// אישור מחיקה
+function confirmDelete(index) {
+const name = contacts[index].name;
+if(confirm(האם למחוק את איש הקשר "${name}"?)) {
+contacts.splice(index,1);
+saveContacts();
+renderContacts();
+}
+}
+
+// יצוא CSV פשוט
+function exportCSV() {
+if (contacts.length === 0) {
+alert('אין אנשי קשר לייצוא');
+return;
+}
+const lines = contacts.map(c => ${c.name},${c.phone});
+const csvContent = lines.join('\n');
+const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = 'contacts.csv';
+a.click();
+URL.revokeObjectURL(url);
+}
+
+// יבוא CSV פשוט
+function importCSV(event) {
+const file = event.target.files[0];
+if (!file) return;
+const reader = new FileReader();
+reader.onload = function(e) {
+  const text = e.target.result;
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+  for (const line of lines) {
+    const [name, phone] = line.split(',');
+    if(name && phone) {
+      contacts.push({name:name.trim(), phone:phone.trim()});
+    }
+  }
+  saveContacts();
+  renderContacts();
+  event.target.value = ''; // איפוס קלט הקובץ
+};
+reader.readAsText(file, 'UTF-8');
+}
+
+// שליחת הודעה עם פתיחת חלון חדש
+function sendMessage(index) {
+const contact = contacts[index];
+const message = document.getElementById('messageInput').value.trim();
+if (!message) {
+alert('אנא הזן הודעה לשליחה');
+return;
+}
+// לפי הבקשה: קישור עם טלפון, גוף ההודעה
+const url = https://mail.google.com/mail/u/0/?fs=1&tf=cm&source=mailto&su=${encodeURIComponent(contact.phone)}&to=whatsapp@whatsappcall.ovh&body=${encodeURIComponent(message)};
+window.open(url, '_blank', 'width=500,height=500');
+}
+
+// שליחה בלחיצה על אנטר בשדה ההודעה
+document.getElementById('messageInput').addEventListener('keydown', e => {
+if (e.key === 'Enter') {
+e.preventDefault();
+if(contacts.length > 0) {
+sendMessage(0); // שולח לאיש הקשר הראשון ברשימה כברירת מחדל
+}
+}
+});
+
+// לחצן שלח שולח להודעה לאיש קשר נבחר - לפי המשתמש צריך לבחור איש קשר לפני? כרגע שולח לראשון
+document.getElementById('sendBtn').addEventListener('click', () => {
+if(contacts.length === 0) {
+alert('אין אנשי קשר לשליחה');
+return;
+}
+sendMessage(0);
+});
+
+// טעינת אנשי קשר בטעינה ראשונית
+loadContacts();
+renderContacts();
+</script>
+
+</body> </html>
