@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>מחשבון זמנים </title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      background: #f0f0f0;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    .result {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 18px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>מחשבון זמנים </h2>
+<label for="cities">מספר ערים:</label>
+  <input type="number" id="cities" value="1" min="1">
+  <label for="times">מספר זמנים בכל עיר:</label>
+  <input type="number" id="times" value="1" min="1">
+
+  
+
+  <label for="years">מספר שנים:</label>
+  <input type="number" id="years" value="1" min="1">
+
+  <div class="result" id="output">סכום סופי: 0 ₪</div>
+</div>
+
+<script>
+  const timesInput = document.getElementById('times');
+  const citiesInput = document.getElementById('cities');
+  const yearsInput = document.getElementById('years');
+  const output = document.getElementById('output');
+
+  function calculate() {
+    const times = parseInt(timesInput.value) || 0;
+    const cities = parseInt(citiesInput.value) || 0;
+    const years = parseInt(yearsInput.value) || 1;
+
+    const totalTimes = times * cities;
+
+    const baseLimit = 15;
+    const basePrice = 290;
+    const extraTimePrice = 10;
+
+    let yearOnePrice;
+    if (totalTimes <= baseLimit) {
+      yearOnePrice = basePrice;
+    } else {
+      const extra = totalTimes - baseLimit;
+      yearOnePrice = basePrice + extra * extraTimePrice;
+    }
+
+    const additionalYears = Math.max(0, years - 1);
+    const additionalCostPerYear = yearOnePrice * 0.5;
+    const totalPrice = yearOnePrice + (additionalYears * additionalCostPerYear);
+
+    output.innerText = `בחרת ${times} זמנים ב־${cities} ערים, סה"כ ${totalTimes} זמנים, ל־${years} שנים, והמחיר הוא ${totalPrice.toFixed(2)} ₪.`;
+  }
+
+  timesInput.addEventListener('input', calculate);
+  citiesInput.addEventListener('input', calculate);
+  yearsInput.addEventListener('input', calculate);
+
+  calculate(); // חישוב ראשוני
+</script>
+
+</body>
+</html>
