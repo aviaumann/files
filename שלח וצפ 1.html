@@ -1,194 +1,282 @@
 <!DOCTYPE html>
-<html lang="he">
+<html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>ניהול אנשי קשר</title>
+  <title>שליחת הודעה</title>
+  <link rel="icon" type="image/x-icon" href="file:///C:/Users/58042/Pictures/whatsapp.png">
+
   <style>
     body {
-      direction: rtl;
       font-family: sans-serif;
       background: #e5ddd5;
       margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: #fff;
       padding: 20px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    h1 {
-      margin-top: 0;
+
+    .container {
+      max-width: 500px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    h2 {
+      text-align: center;
       color: #075e54;
     }
-    .contact {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #dcf8c6;
-      margin-bottom: 10px;
+
+    input[type="text"] {
+      width: 100%;
       padding: 10px;
-      border-radius: 10px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      border-radius: 25px;
     }
-    .contact img {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      margin-left: 10px;
-    }
-    .contact-info {
-      flex-grow: 1;
-    }
-    .contact button {
-      background: none;
+
+    #sendBtn {
+      width: 300px;
+      margin: 10px auto;
+      display: block;
+      padding: 10px;
+      background: #25d366;
+      color: white;
       border: none;
-      color: red;
-      font-weight: bold;
+      border-radius: 25px;
+      font-size: 16px;
       cursor: pointer;
     }
-    .actions {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
+
+    #sendBtn::before {
+      content: "✈️ ";
     }
-    .actions button {
-      flex: 1;
-      padding: 10px;
+
+    #contactsList {
+      list-style: none;
+      padding: 0;
+    }
+
+    .contact-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .contact-info {
+      display: flex;
+      align-items: center;
+    }
+
+    .profile-pic {
+      width: 30px;
+      height: 30px;
+      background: #ddd;
+      border-radius: 50%;
+      margin-left: 10px;
+      display: inline-block;
+      text-align: center;
+      line-height: 30px;
+    }
+
+    .btn-bar {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 10px;
+    }
+
+    button.action {
+      padding: 8px 12px;
       background: #128c7e;
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 10px;
       cursor: pointer;
     }
-    #sendBtn {
-      width: 300px;
-      background: #25d366;
-      margin-top: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
+
+    button.action::before {
+      margin-left: 5px;
+    }
+
+    #downloadBtn::before { content: "⬇️"; }
+    #uploadBtn::before { content: "📁"; }
+    #addContactBtn::before { content: "➕"; }
+
+    .delete-btn {
+      cursor: pointer;
+      color: red;
+      font-weight: bold;
+      margin-right: 5px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>ניהול אנשי קשר</h1>
-    <div class="actions">
-      <button id="addContactBtn">➕ הוסף איש קשר</button>
-      <button id="downloadBtn">⬇️ הורד CSV</button>
-      <button id="uploadBtn">⬆️ טען CSV</button>
-      <input type="file" id="csvFileInput" accept=".csv" style="display:none">
+    <h2>שליחת הודעה</h2>
+    
+    <input type="text" id="nameInput" placeholder="הכנס שם או מספר..." list="names">
+    <datalist id="names"></datalist>
+    
+    <input type="text" id="phoneDisplay" placeholder="מספר טלפון" readonly>
+
+    <button id="sendBtn">שלח</button>
+
+    <h3>ניהול אנשי קשר</h3>
+    <div class="btn-bar">
+      <button class="action" id="downloadBtn">הורדה CSV</button>
+      <button class="action" id="uploadBtn">טעינה CSV</button>
+      <button class="action" id="addContactBtn">הוסף איש קשר</button>
+      <input type="file" id="fileInput" accept=".csv" style="display:none;">
     </div>
 
-    <input type="text" id="nameInput" placeholder="הכנס שם לחיפוש או שליחה" style="width: 100%; padding: 10px;">
-    <button id="sendBtn">שלח ✈️</button>
-
-    <div id="contacts"></div>
+    <ul id="contactsList"></ul>
   </div>
 
   <script>
     let contacts = JSON.parse(localStorage.getItem("contacts") || "[]");
-    const contactsDiv = document.getElementById("contacts");
-    const nameInput = document.getElementById("nameInput");
 
-    function saveContacts() {
-      localStorage.setItem("contacts", JSON.stringify(contacts));
-    }
+    const nameInput = document.getElementById("nameInput");
+    const phoneDisplay = document.getElementById("phoneDisplay");
+    const datalist = document.getElementById("names");
+    const contactsList = document.getElementById("contactsList");
 
     function renderContacts() {
-      contactsDiv.innerHTML = "";
-      contacts.forEach((c, i) => {
-        const div = document.createElement("div");
-        div.className = "contact";
-        div.innerHTML = `
-          <img src="https://via.placeholder.com/32" alt="Profile">
-          <div class="contact-info">${c.name} - ${c.phone}</div>
-          <button onclick="confirmDelete(${i})">❌</button>
+      datalist.innerHTML = "";
+      contactsList.innerHTML = "";
+      contacts.forEach(({ name, phone }, index) => {
+        const option = document.createElement("option");
+        option.value = name;
+        datalist.appendChild(option);
+
+        const li = document.createElement("li");
+        li.className = "contact-item";
+
+        li.innerHTML = `
+          <div class="contact-info">
+            <div class="profile-pic">👤</div>
+            <span>${name} - ${phone}</span>
+          </div>
+          <span class="delete-btn" onclick="deleteContact(${index})">❌</span>
         `;
-        contactsDiv.appendChild(div);
+        contactsList.appendChild(li);
       });
     }
 
-    function confirmDelete(index) {
-      if (confirm(`האם למחוק את ${contacts[index].name}?`)) {
+    function deleteContact(index) {
+      const contact = contacts[index];
+      if (confirm(`האם אתה בטוח שברצונך למחוק את ${contact.name}?`)) {
         contacts.splice(index, 1);
-        saveContacts();
+        localStorage.setItem("contacts", JSON.stringify(contacts));
         renderContacts();
       }
     }
 
-    document.getElementById("addContactBtn").onclick = () => {
-      if (document.getElementById("addForm")) return;
-      const formDiv = document.createElement("div");
-      formDiv.id = "addForm";
-      formDiv.style.marginTop = "10px";
-      formDiv.style.background = "#f0f0f0";
-      formDiv.style.padding = "10px";
-      formDiv.style.borderRadius = "10px";
-      formDiv.innerHTML = `
-        <label>שם: <input id="newName" type="text"></label><br>
-        <label>טלפון: <input id="newPhone" type="text"></label><br>
-        <button onclick="saveNewContact()">שמור</button>
-        <button onclick="document.getElementById('addForm').remove()">ביטול</button>
-      `;
-      document.querySelector(".container").appendChild(formDiv);
-    }
-
-    function saveNewContact() {
-      const name = document.getElementById("newName").value;
-      const phone = document.getElementById("newPhone").value;
-      if (!name || !phone) return alert("יש למלא שם וטלפון");
-      contacts.push({ name, phone });
-      saveContacts();
-      renderContacts();
-      document.getElementById("addForm").remove();
-    }
-
-    document.getElementById("downloadBtn").onclick = () => {
-      let csv = contacts.map(c => `${c.name},${c.phone}`).join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "contacts.csv";
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    document.getElementById("uploadBtn").onclick = () => {
-      document.getElementById("csvFileInput").click();
-    }
-
-    document.getElementById("csvFileInput").addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const lines = e.target.result.split("\n");
-        lines.forEach(line => {
-          const [name, phone] = line.trim().split(",");
-          if (name && phone) contacts.push({ name, phone });
-        });
-        saveContacts();
-        renderContacts();
+    nameInput.addEventListener("input", () => {
+      const value = nameInput.value.trim();
+      const found = contacts.find(c => c.name === value);
+      if (found) {
+        phoneDisplay.value = found.phone;
+      } else {
+        phoneDisplay.value = normalizePhone(value);
       }
-      reader.readAsText(file);
     });
+
+    function normalizePhone(phone) {
+      phone = phone.replace(/-/g, "");
+      if (phone.startsWith("972")) {
+        phone = "0" + phone.slice(3);
+      }
+      return /^0\d{8,9}$/.test(phone) ? phone : "";
+    }
 
     document.getElementById("sendBtn").onclick = () => {
-      const name = nameInput.value;
-      const found = contacts.find(c => c.name === name);
-      if (!found) return alert("איש קשר לא נמצא");
-      const url = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&source=mailto&su=${found.phone}&to=whatsapp@whatsappcall.ovh&body=`;
-      window.open(url, "_blank", "width=500,height=500");
-    }
+      const phone = normalizePhone(phoneDisplay.value);
+      if (phone) {
+        window.open(`https://mail.google.com/mail/u/0/?fs=1&tf=cm&source=mailto&su=${phone}&to=whatsapp@whatsappcall.ovh&body`, "_blank", "width=500,height=500");
+      } else {
+        alert("מספר טלפון לא תקין.");
+      }
+    };
 
-    nameInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") document.getElementById("sendBtn").click();
-    });
+    document.getElementById("addContactBtn").onclick = () => {
+      const formDiv = document.createElement("div");
+      formDiv.innerHTML = `
+        <label>שם: <input id="newName"></label><br>
+        <label>טלפון: <input id="newPhone"></label><br>
+        <button onclick="saveNewContact()">שמור</button>
+      `;
+      document.body.appendChild(formDiv);
+    };
+
+    window.saveNewContact = () => {
+      const name = document.getElementById("newName").value.trim();
+      const phone = normalizePhone(document.getElementById("newPhone").value.trim());
+      if (name && phone) {
+        contacts.push({ name, phone });
+        localStorage.setItem("contacts", JSON.stringify(contacts));
+        renderContacts();
+        document.body.removeChild(document.body.lastChild);
+      } else {
+        alert("פרטים לא תקינים.");
+      }
+    };
+
+    document.getElementById("downloadBtn").onclick = () => {
+      const csv = contacts.map(c => `${c.name},${c.phone}`).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "אנשי קשר בווצאפ.csv";
+      a.click();
+    };
+
+    document.getElementById("uploadBtn").onclick = () => {
+      document.getElementById("fileInput").click();
+    };
+
+    document.getElementById("fileInput").onchange = (e) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const lines = reader.result.split("\n");
+        contacts = lines.map(line => {
+          const [name, phone] = line.trim().split(",");
+          return { name, phone: normalizePhone(phone) };
+        }).filter(c => c.name && c.phone);
+        localStorage.setItem("contacts", JSON.stringify(contacts));
+        renderContacts();
+      };
+      reader.readAsText(e.target.files[0]);
+    };
 
     renderContacts();
+    // שליחה עם אנטר
+nameInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    document.getElementById("sendBtn").click();
+  }
+});
+
+document.getElementById("addContactBtn").onclick = () => {
+  if (document.getElementById("addForm")) return;
+
+  const formDiv = document.createElement("div");
+  formDiv.id = "addForm";
+  formDiv.style.marginTop = "10px";
+  formDiv.style.background = "#f0f0f0";
+  formDiv.style.padding = "10px";
+  formDiv.style.borderRadius = "10px";
+
+  formDiv.innerHTML = `
+    <label>שם: <input id="newName" type="text"></label><br>
+    <label>טלפון: <input id="newPhone" type="text"></label><br>
+    <button onclick="saveNewContact()">שמור</button>
+    <button onclick="document.getElementById('addForm').remove()">ביטול</button>
+  `;
+  document.querySelector(".container").appendChild(formDiv);
+};
+
   </script>
 </body>
 </html>
