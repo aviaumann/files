@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>שליחת הודעה</title>
-  <link rel="icon" type="image/x-icon" href="file:///C:/Users/58042/Pictures/whatsapp.png">
+  <link rel="icon" type="image/x-icon" href="file:///C:/Users/a5804/Pictures/whatsapp.png">
 
   <style>
     body {
@@ -278,5 +278,126 @@ document.getElementById("addContactBtn").onclick = () => {
 };
 
   </script>
+
+<hr style="margin:30px 0">
+
+<h3>📢 שליחה לקבוצות</h3>
+
+<div style="max-width:400px">
+
+  <div style="display:flex; gap:6px; margin-bottom:6px;">
+    <input id="groupName" placeholder="שם קבוצה" style="flex:1">
+    <input id="groupId" placeholder="מספר קבוצה" style="flex:1">
+    <button onclick="addGroup()">➕</button>
+  </div>
+
+  <select id="groupSelect" style="width:100%; margin-bottom:6px;"></select>
+
+  <div style="display:flex; gap:6px;">
+    <button onclick="sendToGroup()">✈️ שלח לקבוצה</button>
+    <button onclick="deleteGroup()">❌ מחק</button>
+  </div>
+  <div style="display:flex; gap:6px; margin-top:6px;">
+  <button onclick="exportGroupsCSV()">⬇️ יצוא CSV</button>
+  <label style="border:1px solid #ccc;padding:4px 8px;cursor:pointer;">
+    ⬆️ יבוא CSV
+    <input type="file" accept=".csv" onchange="importGroupsCSV(event)" style="display:none">
+  </label>
+</div>
+
+
+</div>
+
+
+<script>
+let groups = JSON.parse(localStorage.getItem('groups') || '[]');
+
+function saveGroups() {
+  localStorage.setItem('groups', JSON.stringify(groups));
+}
+
+function renderGroups() {
+  const sel = document.getElementById('groupSelect');
+  sel.innerHTML = '';
+  groups.forEach((g, i) => {
+    const o = document.createElement('option');
+    o.value = i;
+    o.textContent = g.name + ' (' + g.id + ')';
+    sel.appendChild(o);
+  });
+}
+
+function addGroup() {
+  const name = document.getElementById('groupName').value.trim();
+  const id = document.getElementById('groupId').value.trim();
+  if (!name || !id) {
+    alert('נא למלא שם ומספר קבוצה');
+    return;
+  }
+  groups.push({name, id});
+  saveGroups();
+  renderGroups();
+  document.getElementById('groupName').value = '';
+  document.getElementById('groupId').value = '';
+}
+
+function deleteGroup() {
+  const sel = document.getElementById('groupSelect');
+  if (sel.selectedIndex === -1) return;
+  const name = groups[sel.value].name;
+  if (confirm(`למחוק את "${name}"?`)) {
+    groups.splice(sel.value,1);
+    saveGroups();
+    renderGroups();
+  }
+}
+
+function sendToGroup() {
+  const sel = document.getElementById('groupSelect');
+  if (sel.selectedIndex === -1) {
+    alert('בחר קבוצה');
+    return;
+  }
+  const group = groups[sel.value];
+  const msg = document.getElementById('messageInput')?.value || '';
+  const url = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&source=mailto&su=${group.id}&to=whatsapp@whatsappcall.ovh&body=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank', 'width=500,height=500');
+}
+
+renderGroups();
+function exportGroupsCSV() {
+  if (groups.length === 0) {
+    alert('אין קבוצות ליצוא');
+    return;
+  }
+  const lines = groups.map(g => `${g.name},${g.id}`);
+  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'groups.csv';
+  a.click();
+}
+
+function importGroupsCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split(/\r?\n/);
+    for (const line of lines) {
+      const [name,id] = line.split(',');
+      if (name && id) groups.push({name:name.trim(), id:id.trim()});
+    }
+    saveGroups();
+    renderGroups();
+    event.target.value = '';
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+
+</script>
+
+
 </body>
 </html>
